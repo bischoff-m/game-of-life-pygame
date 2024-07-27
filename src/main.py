@@ -2,87 +2,7 @@ from typing import List
 import pygame
 import sys
 import numpy as np
-
-
-class Button:
-    def __init__(
-        self,
-        position,
-        size,
-        color=pygame.Color("#f0f0f0"),
-        hover_color=pygame.Color("#f0f0f0"),
-        on_click=None,
-        text="",
-        font="Segoe UI",
-        font_size=16,
-        font_color=pygame.Color("black"),
-    ):
-        self.color = color
-        self.size = size
-        self.on_click = on_click
-        self.surface = pygame.Surface(size)
-        self.rect = self.surface.get_rect(topleft=position)
-        self.hover_color = hover_color
-
-        if len(color) == 4:
-            self.surface.set_alpha(color[3])
-
-        self.font = pygame.font.SysFont(font, font_size)
-        self.text = text
-        self.font_color = font_color
-        self.text_surface = self.font.render(self.text, 1, self.font_color)
-        self.text_rect = self.text_surface.get_rect(
-            center=[wh // 2 for wh in self.size]
-        )
-
-    def set_text(self, text):
-        self.text = text
-        self.text_surface = self.font.render(self.text, 1, self.font_color)
-        self.text_rect = self.text_surface.get_rect(
-            center=[wh // 2 for wh in self.size]
-        )
-
-    def draw(self, screen):
-        self.mouseover()
-
-        self.surface.fill(self.cur_color)
-        self.surface.blit(self.text_surface, self.text_rect)
-        screen.blit(self.surface, self.rect)
-
-    def mouseover(self):
-        self.cur_color = self.color
-        pos = pygame.mouse.get_pos()
-        if self.rect.collidepoint(pos):
-            self.cur_color = self.hover_color
-
-    def handle_click(self, mouse_pos):
-        if self.rect.collidepoint(mouse_pos) and self.on_click:
-            self.on_click()
-
-
-class Text:
-    def __init__(
-        self,
-        text,
-        position,
-        color=pygame.Color("black"),
-        font="Segoe UI",
-        font_size=15,
-        middle=False,
-    ):
-        self.position = position
-        self.font = pygame.font.SysFont(font, font_size)
-        self.text_surface = self.font.render(text, 1, color)
-
-        if len(color) == 4:
-            self.text_surface.set_alpha(color[3])
-
-        if middle:
-            self.position = self.text_surface.get_rect(center=position)
-
-    def draw(self, screen):
-        screen.blit(self.text_surface, self.position)
-
+from ui_elements import Button
 
 # Constants
 BLACK = pygame.Color("#2f3061")
@@ -92,8 +12,9 @@ GRID_WIDTH = 800
 FOOTER_HEIGHT = 36
 BLOCK_SIZE = 10
 state = np.zeros((GRID_WIDTH // BLOCK_SIZE, GRID_HEIGHT // BLOCK_SIZE))
+prev_states = np.zeros((3, state.shape[0], state.shape[1]))
 ui_elements: List[Button] = []
-is_paused = False
+is_paused = True
 
 
 def main():
@@ -103,15 +24,23 @@ def main():
     CLOCK = pygame.time.Clock()
     SCREEN.fill(BLACK)
 
+    # Initialize state
     init_state_random()
     init_footer()
 
+    # Initial draw
+    draw_grid()
+    draw_footer()
+
+    # Main loop
     while True:
         CLOCK.tick(10)
+
+        draw_footer()
         if not is_paused:
             update_state()
             draw_grid()
-        draw_footer()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -151,16 +80,29 @@ def update_state():
             if neighbors == 3:
                 new_state[x][y] = 1
 
+    # Update state
+    prev_states[2] = prev_states[1]
+    prev_states[1] = prev_states[0]
+    prev_states[0] = state.copy()
     state[:] = new_state
 
 
 def draw_grid():
     for x, y in np.ndindex(state.shape):
+        # Brightness ranges from 0 to 1
+        brightness = state[x][y]
+        brightness += 0.5 * prev_states[0][x][y]
+        brightness += 0.25 * prev_states[1][x][y]
+        brightness += 0.125 * prev_states[2][x][y]
+        brightness = min(1, brightness)
+        # Use darkness to scale color
+        color = pygame.Color(
+            int(WHITE.r * brightness),
+            int(WHITE.g * brightness),
+            int(WHITE.b * brightness),
+        )
         rect = pygame.Rect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE)
-        if state[x][y] == 1:
-            pygame.draw.rect(SCREEN, WHITE, rect)
-        else:
-            pygame.draw.rect(SCREEN, BLACK, rect)
+        pygame.draw.rect(SCREEN, color, rect)
 
 
 def init_footer():
@@ -168,17 +110,21 @@ def init_footer():
     color = pygame.Color("#f0f0f0")
     hover_color = pygame.Color("#b0b0b0")
 
+    def _randomize():
+        init_state_random()
+        draw_grid()
+
     button_random = Button(
         position=(padding, GRID_HEIGHT + padding),
         size=(90, FOOTER_HEIGHT - 2 * padding),
+        on_click=_randomize,
         color=color,
         hover_color=hover_color,
-        on_click=init_state_random,
         text="RANDOM",
     )
     ui_elements.append(button_random)
 
-    def toggle_pause():
+    def _toggle_pause():
         global is_paused
         is_paused = not is_paused
         button_pause.set_text("RESUME" if is_paused else "PAUSE")
@@ -186,9 +132,9 @@ def init_footer():
     button_pause = Button(
         position=(100 + padding, GRID_HEIGHT + padding),
         size=(90, FOOTER_HEIGHT - 2 * padding),
+        on_click=_toggle_pause,
         color=color,
         hover_color=hover_color,
-        on_click=toggle_pause,
         text="RESUME" if is_paused else "PAUSE",
     )
     ui_elements.append(button_pause)
