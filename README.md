@@ -1,6 +1,6 @@
 # game-of-life-pygame
 
-![Screenshot](README_files/Screenshot%202024-07-25%20020900.png)
+![Screenshot](README_files/Screenshot%202024-07-28%20022547.png)
 
 Simple implementation of Conway's Game of Life using Pygame.
 

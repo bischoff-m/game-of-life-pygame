@@ -3,40 +3,22 @@ import pygame
 import sys
 import numpy as np
 from ui_elements import Button
-
-
-class Gradient:
-    def __init__(
-        self,
-        primary: pygame.Color,
-        secondary: pygame.Color,
-        steps: int,
-        ease_func: Optional[Callable[[float], float]] = None,
-    ):
-        self.steps = steps
-        # Calculate immediate color steps
-        # 0 -> primary, steps -> secondary
-        self.colors: List[pygame.Color] = []
-        for i in range(steps):
-            val = i / (steps - 1)
-            if ease_func:
-                val = ease_func(val)
-            self.colors.append(primary.lerp(secondary, val))
-
-    def get(self, step: int) -> pygame.Color:
-        if step < 0 or step >= self.steps:
-            raise ValueError("Step out of bounds")
-        return self.colors[step]
+from color import Gradient
 
 
 # Constants
-PRIMARY_COLOR = pygame.Color("#d49d6a")
-SECONDAY_COLOR = pygame.Color("#2f4073")
-GRID_HEIGHT = 750
-GRID_WIDTH = 800
+COLOR1 = pygame.Color("#d49d6a")
+COLOR2 = pygame.Color("#2f4073")
+COLOR3 = pygame.Color("#51A35F")
+# In pixels
+GRID_SIZE = (800, 750)
 FOOTER_HEIGHT = 36
-BLOCK_SIZE = 10
-gradient = Gradient(PRIMARY_COLOR, SECONDAY_COLOR, 100, lambda x: x**0.5)
+BLOCK_SIZE = 5
+gradient = Gradient(
+    {0: COLOR1, 0.5: COLOR3, 1: COLOR2},
+    100,
+    # {0: pygame.Color("white"), 1 / 100: COLOR1, 0.5: COLOR3, 1: COLOR2}, 100
+)
 ui_elements: List[Button] = []
 is_paused = False
 
@@ -45,15 +27,15 @@ is_paused = False
 # 1 = was active 1 step ago
 # n = inactive
 # Game of Life rules are applied for == 0 (active) and > 0 (inactive)
-state = np.zeros((GRID_WIDTH // BLOCK_SIZE, GRID_HEIGHT // BLOCK_SIZE), dtype=int)
+state = np.zeros((GRID_SIZE[0] // BLOCK_SIZE, GRID_SIZE[1] // BLOCK_SIZE), dtype=int)
 
 
 def main():
     global SCREEN, CLOCK
     pygame.init()
-    SCREEN = pygame.display.set_mode((GRID_WIDTH, GRID_HEIGHT + FOOTER_HEIGHT))
+    SCREEN = pygame.display.set_mode((GRID_SIZE[0], GRID_SIZE[1] + FOOTER_HEIGHT))
     CLOCK = pygame.time.Clock()
-    SCREEN.fill(SECONDAY_COLOR)
+    SCREEN.fill(COLOR2)
 
     # Initialize state
     init_state_random()
@@ -145,7 +127,7 @@ def init_footer():
         draw_grid()
 
     button_random = Button(
-        position=(padding, GRID_HEIGHT + padding),
+        position=(padding, GRID_SIZE[1] + padding),
         size=(90, FOOTER_HEIGHT - 2 * padding),
         on_click=_randomize,
         color=color,
@@ -160,7 +142,7 @@ def init_footer():
         button_pause.set_text("RESUME" if is_paused else "PAUSE")
 
     button_pause = Button(
-        position=(100 + padding, GRID_HEIGHT + padding),
+        position=(100 + padding, GRID_SIZE[1] + padding),
         size=(90, FOOTER_HEIGHT - 2 * padding),
         on_click=_toggle_pause,
         color=color,
