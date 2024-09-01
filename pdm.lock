@@ -4,11 +4,8 @@
 [metadata]
 groups = ["default"]
 strategy = ["inherit_metadata"]
-lock_version = "4.5.0"
+lock_version = "4.4.2"
 content_hash = "sha256:6f642e8b9c61837b78bcd67dbe755d5e89d0ff18f18d7e3258e87fb4e70ad76a"
-
-[[metadata.targets]]
-requires_python = "==3.12.*"
 
 [[package]]
 name = "numpy"
