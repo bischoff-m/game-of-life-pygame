@@ -15,3 +15,8 @@ pdm install
 ```bash
 pdm run start
 ```
+
+## Todo
+
+- Add stats like FPS and current iteration to footer
+- Spawn structures randomly to keep the game alive
