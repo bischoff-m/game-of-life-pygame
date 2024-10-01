@@ -13,4 +13,4 @@ license = { text = "MIT" }
 distribution = false
 
 [tool.pdm.scripts]
-start = "python src/main.py"
+dev = "python src/main.py"
